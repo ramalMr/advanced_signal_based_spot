@@ -17,6 +17,9 @@ class DataLoader:
         klines = self.client.get_klines(symbol=self.symbol, interval=self.interval, limit=self.limit)
         data = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
         data['timestamp'] = pd.to_datetime(data['timestamp'], unit='ms')
+        # Set timezone to UTC
+        data['timestamp'] = data['timestamp'].dt.tz_localize('UTC')
+
         data.set_index('timestamp', inplace=True)
         data = data[['open', 'high', 'low', 'close', 'volume']]
         data = data.astype(float)

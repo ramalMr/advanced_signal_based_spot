@@ -1,49 +1,45 @@
 import unittest
 import pandas as pd
+import numpy as np
 from src.indicators.macd import calculate_macd
 from src.indicators.rsi import calculate_rsi
 from src.indicators.volume_imbalance import calculate_volume_imbalance
+from src.indicators.bollinger_bands import calculate_bollinger_bands
+from src.indicators.atr import calculate_atr
 
 class TestIndicators(unittest.TestCase):
     def setUp(self):
         self.data = pd.DataFrame({
-            'close': [100, 110, 120, 130, 140],
-            'volume': [1000, 2000, 3000, 4000, 5000]
+            'open': np.random.randn(100).cumsum() + 100,
+            'high': np.random.randn(100).cumsum() + 102,
+            'low': np.random.randn(100).cumsum() + 98,
+            'close': np.random.randn(100).cumsum() + 100,
+            'volume': np.random.randint(1000, 10000, 100)
         })
-    
+
     def test_calculate_macd(self):
-        macd, signal = calculate_macd(self.data, 2, 3, 2)
-        self.assertIsNotNone(macd)
-        self.assertIsNotNone(signal)
+        macd, signal, _ = calculate_macd(self.data, 12, 26, 9)
         self.assertEqual(len(macd), len(self.data))
         self.assertEqual(len(signal), len(self.data))
-    
+
     def test_calculate_rsi(self):
-        rsi = calculate_rsi(self.data, 2)
-        self.assertIsNotNone(rsi)
+        rsi = calculate_rsi(self.data, 14)
         self.assertEqual(len(rsi), len(self.data))
-    
+        self.assertTrue(all(0 <= val <= 100 for val in rsi if not np.isnan(val)))
+
     def test_calculate_volume_imbalance(self):
-        volume_imbalance = calculate_volume_imbalance(self.data, 2)
-        self.assertIsNotNone(volume_imbalance)
-        self.assertEqual(len(volume_imbalance), len(self.data))
-    def calculate_macd(data: pd.DataFrame, short_period: int, long_period: int, signal_period: int) -> tuple[pd.Series, pd.Series]:
-        exp1 = data['close'].ewm(span=short_period, adjust=False).mean()
-        exp2 = data['close'].ewm(span=long_period, adjust=False).mean()
-        macd = exp1 - exp2
-        signal = macd.ewm(span=signal_period, adjust=False).mean()
-        return macd, signal
+        vol_imbalance = calculate_volume_imbalance(self.data, 14)
+        self.assertEqual(len(vol_imbalance), len(self.data))
 
-    def calculate_rsi(data: pd.DataFrame, period: int) -> pd.Series:
-        delta = data['close'].diff()
-        up = delta.clip(lower=0)
-        down = -delta.clip(upper=0)
-        ma_up = up.rolling(window=period).mean()
-        ma_down = down.rolling(window=period).mean()
-        rs = ma_up / ma_down
-        rsi = 100 - (100 / (1 + rs))
-        return rsi
+    def test_calculate_bollinger_bands(self):
+        bb = calculate_bollinger_bands(self.data, 20, 2)
+        self.assertTrue(all(col in bb.columns for col in ['upper_band', 'middle_band', 'lower_band']))
+        self.assertEqual(len(bb), len(self.data))
+        self.assert_equal(len(bb),len(self.data))
+    def test_calculate_atr(self):
+        atr = calculate_atr(self.data, 14)
+        self.assertEqual(len(atr), len(self.data))
+        self.assertTrue(all(val >= 0 for val in atr if not np.isnan(val)))
 
-    def calculate_volume_imbalance(data: pd.DataFrame) -> pd.Series:
-        volume_imbalance = data['taker_buy_base_asset_volume'] - (data['volume'] - data['taker_buy_base_asset_volume'])
-        return volume_imbalance
+if __name__ == '__main__':
+    unittest.main()

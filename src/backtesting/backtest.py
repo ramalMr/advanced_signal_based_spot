@@ -20,10 +20,8 @@ class Backtester:
         self.initial_capital = initial_capital
         self.stop_loss = stop_loss
         self.take_profit = take_profit
-
     def backtest(self, params: Dict[str, any]) -> pd.DataFrame:
         data = self.data_loader.load_historical_data()
-        
         data['macd'], data['signal'], _ = calculate_macd(data, params['macd_fast'], params['macd_slow'], params['macd_signal'])
         data['rsi'] = calculate_rsi(data, params['rsi_period'])
         data['volume_imbalance'] = calculate_volume_imbalance(data, params['vol_imbalance_period'])
@@ -90,7 +88,6 @@ class Backtester:
         data['capital'] = self.initial_capital * (1 + data['cumulative_profit'])
         
         return data
-
     def calculate_profit(self, data: pd.DataFrame) -> Dict[str, float]:
         total_profit = data['capital'].iloc[-1] - self.initial_capital
         profit_percentage = (total_profit / self.initial_capital) * 100
@@ -136,11 +133,11 @@ class Backtester:
         total_profit = data['profit'].sum()
         average_profit = data['profit'].mean()
         profit_factor = abs(data['profit'][data['profit'] > 0].sum() / data['profit'][data['profit'] < 0].sum()) if data['profit'][data['profit'] < 0].sum() != 0 else float('inf')
-
+    
         max_drawdown = (data['capital'].cummax() - data['capital']).max() / data['capital'].cummax().max()
-
-        sharpe_ratio = np.sqrt(252) * data['profit'].mean() / data['profit'].std() if data['profit'].std() != 0 else 0
-        sortino_ratio = np.sqrt(252) * data['profit'].mean() / data['profit'][data['profit'] < 0].std() if data['profit'][data['profit'] < 0].std() != 0 else 0
+        
+        sharpe_ratio = np.sqrt(365) * data['profit'].mean() / data['profit'].std() if data['profit'].std() != 0 else 0
+        sortino_ratio = np.sqrt(365) * data['profit'].mean() / data['profit'][data['profit'] < 0].std() if data['profit'][data['profit'] < 0].std() != 0 else 0
 
         return {
             'total_trades': total_trades,
@@ -156,3 +153,4 @@ class Backtester:
             'final_capital': data['capital'].iloc[-1],
             'total_return': (data['capital'].iloc[-1] - self.initial_capital) / self.initial_capital
         }
+        

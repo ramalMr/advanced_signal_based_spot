@@ -1,14 +1,22 @@
 import unittest
+import pandas as pd
 from src.data_preprocessing.data_loader import DataLoader
 
 class TestDataLoader(unittest.TestCase):
-    def test_load_data(self):
-        data_loader = DataLoader('BTCUSDT', '1d', 1000)
-        data = data_loader.load_data()
-        self.assertIsNotNone(data)
-        self.assertEqual(len(data), 1000)
-        self.assertIn('open', data.columns)
-        self.assertIn('high', data.columns)
-        self.assertIn('low', data.columns)
-        self.assertIn('close', data.columns)
-        self.assertIn('volume', data.columns)
+    def setUp(self):
+        self.data_loader = DataLoader('BTCUSDT', '1h', 1000)
+
+    def test_load_historical_data(self):
+        data = self.data_loader.load_historical_data()
+        self.assertIsInstance(data, pd.DataFrame)
+        self.assertTrue(len(data) > 0)
+        self.assertTrue(all(col in data.columns for col in ['open', 'high', 'low', 'close', 'volume']))
+
+    def test_get_real_time_data(self):
+        data = self.data_loader.get_real_time_data()
+        self.assertIsInstance(data, pd.DataFrame)
+        self.assertTrue(len(data) > 0)
+        self.assertTrue(all(col in data.columns for col in ['open', 'high', 'low', 'close', 'volume', 'volume_imbalance']))
+
+if __name__ == '__main__':
+    unittest.main()

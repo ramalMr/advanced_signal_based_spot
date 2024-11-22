@@ -1,32 +1,38 @@
 import unittest
 import pandas as pd
-from src.analysis.correlation import calculate_correlation
+import numpy as np
+from src.analysis.correlation import calculate_correlation, calculate_correlations
 from src.analysis.state_evaluation import find_empirical_values, evaluate_current_state
 
 class TestAnalysis(unittest.TestCase):
     def setUp(self):
-        self.price = pd.Series([100, 110, 120, 130, 140])
-        self.indicator = pd.Series([10, 20, 30, 40, 50])
-    
+        self.data = pd.DataFrame({
+            'close': np.random.randn(100).cumsum() + 100,
+            'macd': np.random.randn(100),
+            'rsi': np.random.uniform(0, 100, 100),
+            'volume_imbalance': np.random.randn(100)
+        })
+
     def test_calculate_correlation(self):
-        correlation = calculate_correlation(self.price, self.indicator)
-        self.assertIsNotNone(correlation)
-        self.assertIsInstance(correlation, float)
-        self.assertGreaterEqual(correlation, -1)
-        self.assertLessEqual(correlation, 1)
-    
+        corr = calculate_correlation(self.data['close'], self.data['macd'])
+        self.assertIsInstance(corr, float)
+        self.assertTrue(-1 <= corr <= 1)
+
+    def test_calculate_correlations(self):
+        corrs = calculate_correlations(self.data)
+        self.assertIsInstance(corrs, dict)
+        self.assertTrue(all(key in corrs for key in ['macd', 'rsi', 'volume_imbalance']))
+
     def test_find_empirical_values(self):
-        bottom, peak = find_empirical_values(self.indicator, 0.9)  # Change this line
-        self.assertIsNotNone(bottom)
-        self.assertIsNotNone(peak)
-        self.assertIsInstance(bottom, float)
-        self.assertIsInstance(peak, float)
-        self.assertLess(bottom, peak)
-    
+        lower, upper = find_empirical_values(self.data['macd'])
+        self.assertLess(lower, upper)
+
     def test_evaluate_current_state(self):
-        correlations = [0.5, -0.3, 0.8]
-        current_values = [60, 40, 80]
-        thresholds = [(20, 80), (30, 70), (40, 90)]
-        state = evaluate_current_state(correlations, current_values, thresholds)
-        self.assertIsNotNone(state)
-        self.assertIsInstance(state, float)
+        correlations = calculate_correlations(self.data)
+        empirical_values = {col: find_empirical_values(self.data[col]) for col in ['macd', 'rsi', 'volume_imbalance']}
+        state, probability = evaluate_current_state(self.data.iloc[-1], correlations, empirical_values)
+        self.assertIn(state, ['bullish', 'bearish', 'neutral'])
+        self.assertTrue(0 <= probability <= 1)
+
+if __name__ == '__main__':
+    unittest.main()

@@ -12,5 +12,4 @@ def calculate_atr(data: pd.DataFrame, period: int = 14) -> pd.Series:
     
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
     atr = tr.rolling(window=period).mean()
-    
     return atr
